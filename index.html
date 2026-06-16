@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bitácora">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
 <title>Bitácora — Gimnasio</title>
 <style>
 :root{
@@ -68,6 +70,12 @@ h1{font-size:18px;font-weight:800;letter-spacing:-.02em;margin:0;line-height:1}
 .exname{font-weight:600;line-height:1.2}
 .meta{font-size:11px;font-weight:600;color:var(--amber);margin:5px 0 0}
 .last{font-size:12px;color:var(--muted);margin:3px 0 0;display:flex;align-items:center;gap:4px}
+.target{display:flex;align-items:center;gap:8px;margin:0 16px 6px;padding:8px 12px;border-radius:10px;background:var(--amberDim)}
+.target .tlbl{font-size:10px;font-weight:700;color:var(--amber);display:flex;align-items:center;gap:4px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.target .tval{font-family:ui-monospace,monospace;font-weight:700;font-size:15px;color:var(--text)}
+.target .tdate{font-size:11px;color:var(--muted);margin-left:auto}
+.target.first{background:var(--card2)}
+.target.first .tval{color:var(--muted);font-size:13px;font-weight:600}
 .sets{padding:0 16px 4px}
 .setgrid{display:grid;grid-template-columns:24px 1fr 1fr 28px;gap:8px;align-items:center}
 .setlabels{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-bottom:4px}
@@ -95,6 +103,7 @@ h1{font-size:18px;font-weight:800;letter-spacing:-.02em;margin:0;line-height:1}
 .chip{white-space:nowrap;border-radius:999px;padding:6px 14px;font-size:14px;font-weight:600;
   background:var(--card);color:var(--text);border:1px solid var(--border)}
 .chip.on{background:var(--amber);color:#1a1205;border-color:var(--amber)}
+.chipwrap{display:flex;flex-wrap:wrap;gap:8px}
 
 /* stats grid */
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
@@ -410,19 +419,23 @@ function exBlock(entry,ei,rt){
   const rx=rt&&rt.prescriptions?rt.prescriptions[entry.exerciseId]:null;
   const best=bestPrior1RM(entry.exerciseId);
   const prior=priorEntries(entry.exerciseId)[0]||null;
-  let last="Primera vez";
-  if(prior){const top=prior.sets.slice().sort((a,b)=>(+b.weight)-(+a.weight))[0]; last=fmtDate(prior.date)+" · "+fmtW(top.weight,u)+u+" × "+top.reps;}
+  const top=prior?prior.sets.slice().sort((a,b)=>(+b.weight)-(+a.weight)||(parseInt(b.reps)||0)-(parseInt(a.reps)||0))[0]:null;
   let h='<div class="exblock"><div class="exhead"><div>'
     +'<div class="exname">'+esc(ex.name)+'</div>';
   if(rx){let m="Meta: "+rx.scheme;
     if(rx.tech&&rx.tech!=="—"&&rx.tech!=="Normal")m+=" · "+rx.tech;
     if(rx.rest&&rx.rest!=="—")m+=" · desc. "+rx.rest;
     h+='<div class="meta">'+esc(m)+'</div>';}
-  h+='<div class="last">'+ic("clock",11)+' '+esc(last)+'</div></div>'
+  h+='</div>'
     +'<div class="row" style="gap:8px;align-items:center">'
     +'<div class="useg"><button data-act="ex-unit" data-id="'+ex.id+'" data-u="kg" class="'+(u==="kg"?"on":"")+'">kg</button>'
     +'<button data-act="ex-unit" data-id="'+ex.id+'" data-u="lb" class="'+(u==="lb"?"on":"")+'">lb</button></div>'
     +'<button class="xbtn" data-act="remove-entry" data-ei="'+ei+'">'+ic("x",16)+'</button></div></div>';
+  if(top){h+='<div class="target"><span class="tlbl">'+ic("flame",12)+' A superar</span>'
+    +'<span class="tval">'+fmtW(top.weight,u)+' '+u+' × '+top.reps+'</span>'
+    +'<span class="tdate">'+fmtDate(prior.date)+'</span></div>';}
+  else{h+='<div class="target first"><span class="tlbl">'+ic("flame",12)+' Meta</span>'
+    +'<span class="tval">Primera vez — marca tu base</span></div>';}
   if(entry.sets.length){
     h+='<div class="sets"><div class="setgrid setlabels"><span>#</span><span>Peso ('+u+')</span><span>Reps</span><span></span></div>';
     entry.sets.forEach((st,si)=>{
@@ -451,6 +464,7 @@ function routinesView(){
     +'<button data-act="routtab" data-v="routines" class="'+(ui.routTab==="routines"?"on":"")+'" style="flex:1;padding:8px">Rutinas</button>'
     +'<button data-act="routtab" data-v="exercises" class="'+(ui.routTab==="exercises"?"on":"")+'" style="flex:1;padding:8px">Ejercicios</button></div>';
   if(ui.routTab==="routines"){
+    h+='<button class="btn-dashed" data-act="new-routine">'+ic("plus",18)+' Nueva rutina</button>';
     if(!db.routines.length) h+='<p class="muted center" style="padding:24px 0;font-size:14px">Crea rutinas para empezar tus sesiones más rápido.</p>';
     db.routines.forEach(r=>{
       const names=r.exerciseIds.map(id=>{const e=exById(id);return e?e.name:null;}).filter(Boolean).join(" · ")||"Sin ejercicios";
@@ -458,8 +472,8 @@ function routinesView(){
         +'<div class="sub">'+esc(names)+'</div></div>'
         +'<button class="xbtn" data-act="edit-routine" data-id="'+r.id+'">'+ic("pencil",16)+'</button></div></div>';
     });
-    h+='<button class="btn-dashed" data-act="new-routine">'+ic("plus",18)+' Nueva rutina</button>';
   }else{
+    h+='<button class="btn-dashed" data-act="new-exercise">'+ic("plus",18)+' Nuevo ejercicio</button>';
     MUSCLES.forEach(m=>{
       const list=db.exercises.filter(e=>e.muscle===m); if(!list.length)return;
       h+='<div><p class="eyebrow">'+m+'</p>';
@@ -470,7 +484,6 @@ function routinesView(){
         +'<button class="xbtn" data-act="del-exercise" data-id="'+e.id+'">'+ic("trash",15)+'</button></div></div>';});
       h+='</div>';
     });
-    h+='<button class="btn-dashed" data-act="new-exercise">'+ic("plus",18)+' Nuevo ejercicio</button>';
   }
   h+='</div>';
   return h;
@@ -480,7 +493,10 @@ function progressView(){
   const ids=new Set(); db.sessions.forEach(s=>s.entries.forEach(e=>e.sets.length&&ids.add(e.exerciseId)));
   const trained=[...ids].map(exById).filter(Boolean);
   if(!trained.length) return '<div class="px"><p class="muted center" style="padding:48px 0;font-size:14px">Registra algunas series y aquí verás tu progresión por ejercicio.</p></div>';
-  if(!ui.progEx||!trained.find(e=>e.id===ui.progEx)) ui.progEx=trained[0].id;
+  const muscles=MUSCLES.filter(m=>trained.some(e=>e.muscle===m));
+  if(!ui.progMuscle||!muscles.includes(ui.progMuscle)) ui.progMuscle=muscles[0];
+  const inMuscle=trained.filter(e=>e.muscle===ui.progMuscle);
+  if(!ui.progEx||!inMuscle.find(e=>e.id===ui.progEx)) ui.progEx=inMuscle[0].id;
   const exId=ui.progEx;
   const u=unitOf(exById(exId));
   const series=db.sessions.filter(s=>s.entries.some(e=>e.exerciseId===exId&&e.sets.length))
@@ -493,9 +509,12 @@ function progressView(){
   let h='<div class="px stack">';
   h+='<div class="card p16 row"><div class="logo amber">'+ic("flame",20)+'</div>'
     +'<div><div class="mono" style="font-size:20px;line-height:1">'+totalSessions+'</div><div class="sub">sesiones registradas</div></div></div>';
-  h+='<div class="chips">';
-  trained.forEach(e=>{h+='<button class="chip'+(e.id===exId?" on":"")+'" data-act="prog-ex" data-id="'+e.id+'">'+esc(e.name)+'</button>';});
-  h+='</div>';
+  h+='<div><p class="eyebrow">Grupo muscular</p><div class="chipwrap">';
+  muscles.forEach(m=>{h+='<button class="chip'+(m===ui.progMuscle?" on":"")+'" data-act="prog-muscle" data-m="'+m+'">'+m+'</button>';});
+  h+='</div></div>';
+  h+='<div><p class="eyebrow">Ejercicio</p><div class="chipwrap">';
+  inMuscle.forEach(e=>{h+='<button class="chip'+(e.id===exId?" on":"")+'" data-act="prog-ex" data-id="'+e.id+'">'+esc(e.name)+'</button>';});
+  h+='</div></div>';
   if(series.length){
     const maxW=Math.max(...series.map(d=>d.maxW)), max1=Math.max(...series.map(d=>d.e1rm));
     const diff=round1(series[series.length-1].maxW-series[0].maxW);
@@ -695,6 +714,7 @@ document.addEventListener("click",e=>{
       db.exercises.push({id:uid(),name:nm,muscle,unit:exu}); save(); closeModal(); scrollKeep(render); break; }
     case "del-exercise": db.exercises=db.exercises.filter(x=>x.id!==id); save(); scrollKeep(render); break;
 
+    case "prog-muscle": ui.progMuscle=t.dataset.m; ui.progEx=null; scrollKeep(render); break;
     case "prog-ex": ui.progEx=id; scrollKeep(render); break;
 
     case "tstart": tStart(+t.dataset.n); break;
