@@ -1,0 +1,14 @@
+{
+  "name": "Bit\u00e1cora",
+  "short_name": "Bit\u00e1cora",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121419",
+  "theme_color": "#121419",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
